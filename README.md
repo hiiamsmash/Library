@@ -570,3 +570,62 @@ public ArrayList<Member> getMembers() {
 
 
 
+public void returnBook(Member member, String bookTitle) {
+    if (issuedBooks.containsKey(member)) {
+        ArrayList<Book> memberBooks = issuedBooks.get(member);
+
+        // Search for the book in the member's issued books
+        Book bookToReturn = null;
+        for (Book book : memberBooks) {
+            if (book.getTitle().equalsIgnoreCase(bookTitle)) {
+                bookToReturn = book;
+                break;
+            }
+        }
+
+        if (bookToReturn != null) {
+            memberBooks.remove(bookToReturn);
+            books.add(bookToReturn);  // Return the book to the library’s main list
+            System.out.println("Book returned successfully!");
+        } else {
+            System.out.println("This book wasn't issued to this member.");
+        }
+
+    } else {
+        System.out.println("This member has no books issued.");
+    }
+}
+
+
+
+
+case 6:
+    System.out.print("Enter member ID: ");
+    int returnMemberId = scanner.nextInt();
+    scanner.nextLine(); // Consume newline
+
+    Member returnMember = null;
+    for (Member m : library.getMembers()) {
+        if (m.getMemberId() == returnMemberId) {
+            returnMember = m;
+            break;
+        }
+    }
+
+    if (returnMember == null) {
+        System.out.println("Member not found!");
+        break;
+    }
+
+    System.out.print("Enter book title to return: ");
+    String returnTitle = scanner.nextLine();
+
+    library.returnBook(returnMember, returnTitle);
+    break;
+
+
+
+    
+
+
+
