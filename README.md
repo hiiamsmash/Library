@@ -412,3 +412,161 @@ public class LibraryManagementSystem {
 }
 
 
+
+
+
+private ArrayList<Book> books;
+private ArrayList<Member> members;
+private HashMap<Member, ArrayList<Book>> issuedBooks;
+
+
+
+public void issueBook(Member member, Book book) {
+    if (!books.contains(book)) {
+        System.out.println("Book not available!");
+        return;
+    }
+
+    // Remove book from library and add it to member's issued books
+    books.remove(book);
+    issuedBooks.computeIfAbsent(member, k -> new ArrayList<>()).add(book);
+
+    System.out.println("Book issued to " + member.getName());
+}
+
+
+
+
+public void returnBook(Member member, Book book) {
+    if (issuedBooks.containsKey(member) && issuedBooks.get(member).contains(book)) {
+        issuedBooks.get(member).remove(book);
+        books.add(book);
+        System.out.println("Book returned successfully!");
+    } else {
+        System.out.println("This book wasn't issued to this member.");
+    }
+}
+
+
+
+
+public void displayIssuedBooks(Member member) {
+    if (issuedBooks.containsKey(member) && !issuedBooks.get(member).isEmpty()) {
+        System.out.println("Books issued to " + member.getName() + ":");
+        for (Book book : issuedBooks.get(member)) {
+            System.out.println(book);
+        }
+    } else {
+        System.out.println("No books issued to this member.");
+    }
+}
+
+
+
+
+case 5:
+    System.out.print("Enter member ID: ");
+    int issueMemberId = scanner.nextInt();
+    scanner.nextLine();
+
+    Member issueMember = null;
+    for (Member m : library.getMembers()) {
+        if (m.getMemberId() == issueMemberId) {
+            issueMember = m;
+            break;
+        }
+    }
+
+    if (issueMember == null) {
+        System.out.println("Member not found!");
+        break;
+    }
+
+    System.out.print("Enter book title to issue: ");
+    String issueTitle = scanner.nextLine();
+
+    Book issueBook = null;
+    for (Book b : library.getBooks()) {
+        if (b.getTitle().equalsIgnoreCase(issueTitle)) {
+            issueBook = b;
+            break;
+        }
+    }
+
+    if (issueBook == null) {
+        System.out.println("Book not found!");
+    } else {
+        library.issueBook(issueMember, issueBook);
+    }
+    break;
+
+case 6:
+    System.out.print("Enter member ID: ");
+    int returnMemberId = scanner.nextInt();
+    scanner.nextLine();
+
+    Member returnMember = null;
+    for (Member m : library.getMembers()) {
+        if (m.getMemberId() == returnMemberId) {
+            returnMember = m;
+            break;
+        }
+    }
+
+    if (returnMember == null) {
+        System.out.println("Member not found!");
+        break;
+    }
+
+    System.out.print("Enter book title to return: ");
+    String returnTitle = scanner.nextLine();
+
+    Book returnBook = null;
+    for (Book b : library.getBooks()) {
+        if (b.getTitle().equalsIgnoreCase(returnTitle)) {
+            returnBook = b;
+            break;
+        }
+    }
+
+    if (returnBook == null) {
+        System.out.println("Book not found!");
+    } else {
+        library.returnBook(returnMember, returnBook);
+    }
+    break;
+
+case 7:
+    System.out.print("Enter member ID: ");
+    int displayMemberId = scanner.nextInt();
+    scanner.nextLine();
+
+    Member displayMember = null;
+    for (Member m : library.getMembers()) {
+        if (m.getMemberId() == displayMemberId) {
+            displayMember = m;
+            break;
+        }
+    }
+
+    if (displayMember == null) {
+        System.out.println("Member not found!");
+    } else {
+        library.displayIssuedBooks(displayMember);
+    }
+    break;
+
+
+
+    public ArrayList<Book> getBooks() {
+    return books;
+}
+
+public ArrayList<Member> getMembers() {
+    return members;
+}
+
+
+
+
+
