@@ -1,3 +1,313 @@
+//Book class
+package library;
+
+import java.io.Serializable;
+import java.time.LocalDate;
+
+public class Book implements Serializable {
+    private String title;
+    private String author;
+    private String ISBN;
+    private boolean isIssued;
+    private LocalDate issueDate;
+
+    public Book(String title, String author, String ISBN) {
+        this.title = title;
+        this.author = author;
+        this.ISBN = ISBN;
+        this.isIssued = false;
+        this.issueDate = null;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public boolean isIssued() {
+        return isIssued;
+    }
+
+    public LocalDate getIssueDate() {
+        return issueDate;
+    }
+
+    public void issue(LocalDate issuedDate) {
+        this.isIssued = true;
+        this.issueDate = issuedDate;
+    }
+
+    public void returnBook() {
+        this.isIssued = false;
+        this.issueDate = null;
+    }
+
+    @Override
+    public String toString() {
+        return title + " by " + author + " (ISBN: " + ISBN + ")";
+    }
+}
+
+
+
+
+
+
+//Member class
+package library;
+
+import java.io.Serializable;
+
+public class Member implements Serializable {
+    private String name;
+    private String contact;
+    private int memberId;
+    private int penaltyPoints;
+
+    public Member(String name, String contact, int memberId) {
+        this.name = name;
+        this.contact = contact;
+        this.memberId = memberId;
+        this.penaltyPoints = 0;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getPenaltyPoints() {
+        return penaltyPoints;
+    }
+
+    public void addPenalty(int points) {
+        this.penaltyPoints += points;
+    }
+
+    @Override
+    public String toString() {
+        return "Member ID: " + memberId + ", Name: " + name + ", Contact: " + contact + ", Penalty Points: " + penaltyPoints;
+    }
+}
+
+
+
+
+//Library class
+package library;
+
+import library.exceptions.BookNotAvailableException;
+import library.exceptions.BookNotIssuedException;
+
+import java.io.*;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+
+public class Library implements Serializable {
+    private HashMap<String, Book> books = new HashMap<>();
+    private ArrayList<Member> members = new ArrayList<>();
+    private HashMap<Member, ArrayList<Book>> issuedBooks = new HashMap<>();
+
+    public void addBook(Book book) {
+        books.put(book.getTitle().toLowerCase(), book);
+        System.out.println("Book added successfully!");
+    }
+
+    public void displayBooks() {
+        if (books.isEmpty()) {
+            System.out.println("No books available!");
+            return;
+        }
+        int count = 1;
+        for (Book book : books.values()) {
+            System.out.println("Book " + count + ": " + book);
+            count++;
+        }
+    }
+
+    public void addMember(Member member) {
+        members.add(member);
+        System.out.println("Member added successfully!");
+    }
+
+    public ArrayList<Member> getMembers() {
+        return members;
+    }
+
+    public ArrayList<Book> getBooks() {
+        ArrayList<Book> availableBooks = new ArrayList<>();
+        for (Book b : books.values()) {
+            if (!b.isIssued()) {
+                availableBooks.add(b);
+            }
+        }
+        return availableBooks;
+    }
+
+    public void issueBook(Member member, Book book, LocalDate issuedDate) throws BookNotAvailableException {
+        if (book.isIssued()) {
+            throw new BookNotAvailableException("This book is already issued!");
+        }
+        book.issue(issuedDate);
+        issuedBooks.computeIfAbsent(member, k -> new ArrayList<>());
+        issuedBooks.get(member).add(book);
+        System.out.println("Book issued to " + member.getName() + " on " + book.getIssueDate());
+    }
+
+    public void returnBook(Member member, Book book) throws BookNotIssuedException {
+        if (!issuedBooks.containsKey(member) || !issuedBooks.get(member).contains(book)) {
+            throw new BookNotIssuedException("This book was not issued to " + member.getName());
+        }
+
+        LocalDate returnDate = LocalDate.now();
+        LocalDate issueDate = book.getIssueDate();
+        long daysKept = ChronoUnit.DAYS.between(issueDate, returnDate);
+        int penaltyDays = (daysKept > 7) ? (int) (daysKept - 7) : 0;
+        member.addPenalty(penaltyDays);
+
+        book.returnBook();
+        issuedBooks.get(member).remove(book);
+
+        System.out.println("Book returned by " + member.getName() + " on " + returnDate);
+        if (penaltyDays > 0) {
+            System.out.println("Overdue by " + penaltyDays + " days. Penalty added!");
+        } else {
+            System.out.println("Returned on time. No penalty.");
+        }
+    }
+
+    public void saveLibraryData(String filename) throws IOException {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename))) {
+            out.writeObject(this);
+            System.out.println("Library data saved!");
+        }
+    }
+
+    public static Library loadLibraryData(String filename) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename))) {
+            return (Library) in.readObject();
+        }
+    }
+}
+
+
+
+
+//Main 
+
+package library;
+
+import library.exceptions.BookNotAvailableException;
+import library.exceptions.BookNotIssuedException;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Scanner;
+
+public class LibraryManagementSystem {
+    public static void main(String[] args) {
+        Library library = new Library();
+        Scanner scanner = new Scanner(System.in);
+
+        try {
+            library = Library.loadLibraryData("libraryData.dat");
+            System.out.println("Library data loaded successfully!");
+        } catch (Exception e) {
+            System.out.println("Starting a new library.");
+        }
+
+        while (true) {
+            System.out.println("\n1. Add Book\n2. Display Books\n3. Add Member\n4. Issue Book\n5. Return Book\n6. Save and Exit");
+            System.out.print("Enter your choice: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); 
+
+            try {
+                switch (choice) {
+                    case 1 -> {
+                        System.out.print("Enter book title: ");
+                        String title = scanner.nextLine();
+                        System.out.print("Enter author: ");
+                        String author = scanner.nextLine();
+                        System.out.print("Enter ISBN: ");
+                        String ISBN = scanner.nextLine();
+                        library.addBook(new Book(title, author, ISBN));
+                    }
+                    case 2 -> library.displayBooks();
+                    case 3 -> {
+                        System.out.print("Enter member name: ");
+                        String name = scanner.nextLine();
+                        System.out.print("Enter contact: ");
+                        String contact = scanner.nextLine();
+                        System.out.print("Enter member ID: ");
+                        int memberId = scanner.nextInt();
+                        library.addMember(new Member(name, contact, memberId));
+                    }
+                    case 4 -> {
+                        System.out.print("Enter Member Name: ");
+                        String memberName = scanner.nextLine();
+                        System.out.print("Enter Book Title to Issue: ");
+                        String bookTitle = scanner.nextLine();
+                        System.out.print("Enter Issued Date (yyyy-MM-dd): ");
+                        LocalDate issuedDate = LocalDate.parse(scanner.nextLine(), DateTimeFormatter.ISO_LOCAL_DATE);
+
+                        Book book = library.getBooks().stream().filter(b -> b.getTitle().equalsIgnoreCase(bookTitle)).findFirst().orElse(null);
+                        Member member = library.getMembers().stream().filter(m -> m.getName().equalsIgnoreCase(memberName)).findFirst().orElse(null);
+
+                        if (book != null && member != null) {
+                            library.issueBook(member, book, issuedDate);
+                        } else {
+                            System.out.println("Invalid book or member!");
+                        }
+                    }
+                    case 5 -> {
+                        System.out.print("Enter Member Name: ");
+                        String memberName = scanner.nextLine();
+                        System.out.print("Enter Book Title to Return: ");
+                        String bookTitle = scanner.nextLine();
+                        Book book = library.getBooks().stream().filter(b -> b.getTitle().equalsIgnoreCase(bookTitle)).findFirst().orElse(null);
+                        Member member = library.getMembers().stream().filter(m -> m.getName().equalsIgnoreCase(memberName)).findFirst().orElse(null);
+
+                        if (book != null && member != null) {
+                            library.returnBook(member, book);
+                        } else {
+                            System.out.println("Invalid book or member!");
+                        }
+                    }
+                    case 6 -> {
+                        library.saveLibraryData("libraryData.dat");
+                        return;
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("Error: " + e.getMessage());
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public class Book {
     private String title;
     private String author;
